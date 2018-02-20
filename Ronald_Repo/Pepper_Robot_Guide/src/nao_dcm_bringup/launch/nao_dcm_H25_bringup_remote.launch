@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<launch>
+
+        <arg name="robot_ip"          default="$(optenv NAO_IP)" />
+        <arg name="robot_port"        default="$(optenv NAO_PORT 9559)" />
+        <arg name="roscore_ip"        default="127.0.0.1" />
+        <arg name="network_interface" default="eth0" />
+
+ 	<!-- Call Nao Robot publisher -->
+        <include file="$(find nao_description)/launch/upload_nao.launch"/>
+    
+	<!-- Nao Diagnostics -->
+<!--	<node pkg="diagnostic_aggregator" type="aggregator_node" name="nao_dcm_diagnostic_aggregator">
+		<rosparam file="$(find nao_dcm_driver)/config/nao_dcm_analyzers.yaml" command="load"/>
+	</node>
+-->
+
+	<!-- Call Nao Robot Trajectory Controller -->
+	<include file="$(find nao_control)/launch/nao_control_trajectory.launch"/>
+
+ 	<!-- Call Nao Robot Driver -->
+ 	<node pkg="naoqi_dcm_driver" type="naoqi_dcm_driver" name="naoqi_dcm_driver" respawn="false" output="screen" >
+                <!-- Load configurations from YAML file to parameter server -->
+                <rosparam file="$(find nao_dcm_bringup)/config/nao_dcm.yaml" command="load"/>
+                <!-- Specify Robot Body Type on Parameter Server -->
+                <param name="BodyType"            value="H25"/>
+                <param name="RobotIP"             value="$(arg robot_ip)" />
+                <param name="RobotPort"           value="$(arg robot_port)" />
+                <param name="DriverBrokerIP"      value="$(arg roscore_ip)" />
+                <param name="network_interface"   value="$(arg network_interface)" />
+                <param name="motor_groups"        value="Body" />  <!-- either "Body" or "LArm, RArm" by default-->
+                <param name="Prefix"              value="nao_dcm" />
+                <param name="use_dcm"             value="false" />
+ 	</node>
+
+</launch>

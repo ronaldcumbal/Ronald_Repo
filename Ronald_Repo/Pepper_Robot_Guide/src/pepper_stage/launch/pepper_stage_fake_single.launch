@@ -1,0 +1,49 @@
+<!-- 
+  Pepper navigation simulation:
+  - stage_ros
+  - fake localization
+  - move_base
+  - map_server
+  - static map
+  - rviz view
+ -->
+<launch>
+  <arg name="map_file"       default="$(find pepper_navigation)/maps/fullmap.yaml"/>
+  <arg name="world_file"     default="$(find pepper_stage)/stage/fullmap_stage_single.world"/>
+  <arg name="initial_pose_x" default="0.0"/>
+  <arg name="initial_pose_y" default="0.0"/>
+  <arg name="initial_pose_a" default="0.0"/>
+
+  <param name="/use_sim_time" value="true"/>
+  <node pkg="stage_ros" type="stageros" name="stageros" args="$(arg world_file)">
+    <param name="base_watchdog_timeout" value="0.2"/>
+  </node>
+
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+  </node>
+
+  <!--- fake_localization -->
+  <node name="fake_localization" pkg="fake_localization" type="fake_localization" respawn="false">
+    <param name="delta_y"               value="1.5"/>
+  </node>
+  
+  <!-- Run move_base node -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <param name="footprint_padding"     value="0.01" />
+    <param name="controller_frequency"  value="10.0" />
+    <param name="controller_patience"   value="3.0" />
+    <param name="oscillation_timeout"   value="30.0" />
+    <param name="oscillation_distance"  value="0.5" />
+
+    <rosparam file="$(find pepper_stage)/costmaps/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find pepper_stage)/costmaps/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find pepper_stage)/costmaps/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find pepper_stage)/costmaps/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find pepper_stage)/costmaps/dwa_local_planner.yaml" command="load" />
+  </node>
+
+  <!-- Visualisation -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find pepper_stage)/rviz/pepper_navigation_single.rviz"/>
+</launch>

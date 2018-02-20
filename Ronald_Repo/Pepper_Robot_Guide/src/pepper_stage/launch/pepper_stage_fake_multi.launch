@@ -1,0 +1,76 @@
+<!-- 
+  Pepper navigation simulation:
+  - stage_ros
+  - fake localization
+  - move_base
+  - map_server
+  - static map
+  - rviz view
+ -->
+<launch>
+  <master auto="start"/>
+  <param name="/use_sim_time" value="true"/>
+  <arg name="map_file"       default="$(find pepper_navigation)/maps/fullmap.yaml"/>
+  <arg name="world_file"     default="$(find pepper_stage)/stage/fullmap_stage_multi.world"/>
+  <arg name="initial_pose_x" default="0.0"/>
+  <arg name="initial_pose_y" default="0.0"/>
+  <arg name="initial_pose_a" default="0.0"/>
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+    <param name="frame_id" value="/map"/>
+  </node>
+  <!-- Run stage_ros -->
+  <node pkg="stage_ros" type="stageros" name="stageros" args="$(arg world_file)">
+    <param name="base_watchdog_timeout" value="0.2"/>
+  </node>
+
+  <!-- BEGIN ROBOT 0 -->
+  <group ns="robot_0">
+    <param name="tf_prefix" value="robot_0" />
+    <!--- fake_localization -->
+    <node name="fake_localization" pkg="fake_localization" type="fake_localization" respawn="false">
+      <param name="odom_frame_id"         value="robot_0/odom"/> 
+      <param name="base_frame_id"         value="robot_0/base_link"/>
+      <param name="delta_y"               value="1.5"/>
+    </node>
+    <!-- Run move_base node -->
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+      <remap from="map" to="/map" />
+      <param name="footprint_padding"     value="0.01" />
+      <param name="controller_frequency"  value="10.0" />
+      <param name="controller_patience"   value="3.0" />
+      <param name="oscillation_timeout"   value="30.0" />
+      <param name="oscillation_distance"  value="0.5" />
+      <rosparam file="$(find pepper_stage)/costmaps/costmap_common_params.yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find pepper_stage)/costmaps/costmap_common_params.yaml" command="load" ns="local_costmap" />
+      <rosparam file="$(find pepper_stage)/costmaps/local_costmap_params.yaml" command="load" />
+      <rosparam file="$(find pepper_stage)/costmaps/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find pepper_stage)/costmaps/dwa_local_planner.yaml" command="load" />
+    </node>
+   </group>
+  <!-- END ROBOT 0 -->
+<!-- BEGIN ROBOT 1 -->
+  <group ns="robot_1">
+    <param name="tf_prefix" value="robot_1" />
+
+    <node pkg="move_base" type="move_base" respawn="false" name="move_base_node" output="screen">
+      <remap from="map" to="/map" />
+      <param name="controller_frequency" value="10.0" />
+      <rosparam file="$(find pepper_stage)/costmaps/dwa/costmap_common_params.yaml" command="load" ns="global_costmap" />
+      <rosparam file="$(find pepper_stage)/costmaps/dwa/costmap_common_params.yaml" command="load" ns="local_costmap" />
+      <rosparam file="$(find pepper_stage)/costmaps/dwa/local_costmap_params.yaml" command="load" />
+      <rosparam file="$(find pepper_stage)/costmaps/dwa/global_costmap_params.yaml" command="load" />
+      <rosparam file="$(find pepper_stage)/costmaps/dwa/dwa_local_planner.yaml" command="load" />
+    </node>
+
+    <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false">
+      <param name="odom_frame_id" value="robot_1/odom" />
+      <param name="base_frame_id" value="robot_1/base_link" />
+      <param name="delta_y"               value="1.5"/>
+    </node>
+  </group>
+<!-- END ROBOT 1 -->
+  <!-- Visualisation -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find pepper_stage)/rviz/pepper_navigation_multi.rviz"/>
+</launch>

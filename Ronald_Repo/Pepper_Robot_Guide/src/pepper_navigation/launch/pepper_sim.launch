@@ -1,0 +1,160 @@
+<!-- 
+  Pepper navigation simulation:
+  - stage_ros
+  - fake localization
+  - move_base
+  - map_server
+  - static map
+  - rviz view
+ -->
+<launch>
+  <param name="Guiding/partnerName"       value="Partner"/>
+  <param name="/simulation"               value="false"/>
+  <param name="/room_number"              value="0"/>
+  <param name="/partner_lost"             value="false"/>
+  <param name="/partner_side"             value="0"/>
+  <param name="/with_partner"             value="true"/>
+  <param name="/obstacle_detection/laser" value="/robot_0/base_scan"/>
+
+
+  <master auto="start"/>
+  <param name="/use_sim_time" value="true"/>
+  <param name="/simulation"   value="true"/>
+  <arg name="map_file"       default="$(find pepper_navigation)/maps/fullmap.yaml"/>
+  <arg name="world_file"     default="$(find pepper_navigation)/stage/world/fullmap_stage_multi.world"/>
+  <arg name="initial_pose_x" default="0.0"/>
+  <arg name="initial_pose_y" default="0.0"/>
+  <arg name="initial_pose_a" default="0.0"/>
+
+  <!-- set rosconsole to DEBUG-->
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find sfm_local_planner)/custom_rosconsole.conf"/>
+
+  <!-- Run stage_ros -->
+  <node pkg="stage_ros" type="stageros" name="stageros" args="$(arg world_file)">
+    <param name="base_watchdog_timeout" value="0.2"/>
+  </node>
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+    <param name="frame_id" value="/map"/>
+  </node>
+
+  <!-- BEGIN ROBOT 0 -->
+  <group ns="robot_0">
+    <param name="tf_prefix" value="robot_0" />
+    
+    <!--- fake_localization -->
+    <node name="fake_localization" pkg="fake_localization" type="fake_localization" respawn="false">
+      <param name="global_frame_id"       value="/map" />
+      <param name="odom_frame_id"         value="robot_0/odom"/> 
+      <param name="base_frame_id"         value="robot_0/base_link"/>
+      <param name="delta_y"               value="1.5"/>
+    </node>
+
+    <!-- Run move_base node -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <remap from="map" to="/map" />
+    <param name="base_local_planner"    value="sfm_local_planner/SFMPlanner"/>
+    <!-- SFM Local Planner parameters -->
+    <param name="SFMPlanner/subgoal_tol"           value="0.65"/>
+    <param name="SFMPlanner/goal_tol"              value="0.1"/>
+    <param name="SFMPlanner/max_vel_lin"           value="1.0"/>
+    <param name="SFMPlanner/max_vel_th"            value="0.5"/>
+    <param name="SFMPlanner/goal_coef"             value="1.0"/>
+    <param name="SFMPlanner/part_coef"             value="1.0"/>
+    <param name="SFMPlanner/peds_coef"             value="1.0"/>
+    <param name="SFMPlanner/obst_coef"             value="0.0"/>
+    <param name="SFMPlanner/desi_vel"              value="2.3"/>
+    <param name="SFMPlanner/relax_time"            value="3.0"/>
+    <param name="SFMPlanner/dSoc"                  value="0.5"/>
+    <!-- Frame Name -->
+    <param name="SFMPlanner/global_frame"          value="map"/>
+    <param name="SFMPlanner/robot_odom_topic"      value="/robot_0/odom"/>
+    <param name="SFMPlanner/partner_pose_topic"    value="/partner_pose"/>
+    <param name="SFMPlanner/pedest_pose_topic"     value="/people_detected"/>
+    <param name="SFMPlanner/obstacle_pose_topic"   value="/obstacle_pose"/>
+    <param name="SFMPlanner/robot_base_frame"      value="/robot_0/base_link"/>
+
+    <rosparam file="$(find pepper_navigation)/costmaps/sim_sfm/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find pepper_navigation)/costmaps/sim_sfm/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find pepper_navigation)/costmaps/sim_sfm/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find pepper_navigation)/costmaps/sim_sfm/local_costmap_params.yaml" command="load" />
+  </node>
+   </group>
+  <!-- END ROBOT 0 -->
+
+  <!-- BEGIN ROBOT 1 -->
+  <group ns="robot_1">
+    <param name="tf_prefix" value="robot_1" />
+    <!--- fake_localization -->
+    <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false">
+      <param name="global_frame_id"       value="/map" />
+      <param name="odom_frame_id"         value="robot_1/odom" />
+      <param name="base_frame_id"         value="robot_1/base_link" />
+      <param name="delta_y"               value="1.5"/>
+    </node>
+  </group>
+  <!-- END ROBOT 1 -->
+
+  <!-- BEGIN ROBOT 2 -->
+  <group ns="robot_2">
+    <param name="tf_prefix" value="robot_2" />
+    <!--- fake_localization -->
+    <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false">
+      <param name="global_frame_id"       value="/map" />
+      <param name="odom_frame_id"         value="robot_2/odom" />
+      <param name="base_frame_id"         value="robot_2/base_link" />
+      <param name="delta_y"               value="1.5"/>
+    </node>
+  </group>
+  <!-- END ROBOT 2 -->
+
+  <!-- BEGIN ROBOT 3 -->
+  <group ns="robot_3">
+    <param name="tf_prefix" value="robot_3" />
+    <!--- fake_localization -->
+    <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false">
+      <param name="global_frame_id"       value="/map" />
+      <param name="odom_frame_id"         value="robot_3/odom" />
+      <param name="base_frame_id"         value="robot_3/base_link" />
+      <param name="delta_y"               value="1.5"/>
+    </node>
+  </group>
+  <!-- END ROBOT 3 -->
+
+  <!-- BEGIN ROBOT 4 -->
+  <group ns="robot_4">
+    <param name="tf_prefix" value="robot_4" />
+    <!--- fake_localization -->
+    <node pkg="fake_localization" type="fake_localization" name="fake_localization" respawn="false">
+      <param name="global_frame_id"       value="/map" />
+      <param name="odom_frame_id"         value="robot_4/odom" />
+      <param name="base_frame_id"         value="robot_4/base_link" />
+      <param name="delta_y"               value="1.5"/>
+    </node>
+  </group>
+  <!-- END ROBOT 4 -->
+
+
+  <!-- Keyboard control of Pedestrian 
+  <node name="pedestrian_teleop" type="pepper_sim_teleop_key.py" pkg="pepper_navigation" launch-prefix="xterm -e" /> 
+-->
+
+
+  <!-- People Detection Node 
+  <node name="people_detector_sim" type="people_detector_sim" pkg="pepper_people_detector"/> 
+-->
+  <!-- Partner Detection Node 
+  <node name="partner_detector_sim" type="partner_detector_sim" pkg="pepper_people_detector"/> 
+-->
+
+  <!-- Obstacle Detection Node -->
+  <node name="obstacle_detection" type="obstacle_detection" pkg="pepper_navigation"/> 
+
+  <!-- Navigation Goal node -->
+  <node name="navigation_goals_sim" type="navigation_goals_sim" pkg="pepper_navigation" launch-prefix="xterm -e" /> 
+
+  <!-- Visualisation -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find pepper_navigation)/stage/rviz/pepper_navigation_multi.rviz"/>
+
+</launch>

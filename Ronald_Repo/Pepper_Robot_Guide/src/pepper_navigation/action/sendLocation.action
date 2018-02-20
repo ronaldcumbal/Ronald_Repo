@@ -1,0 +1,8 @@
+# Define the goal
+float32 room_number
+---
+# Define the result
+bool recieved_condition
+---
+# Define a feedback message
+bool what

@@ -1,0 +1,8 @@
+# Define the goal: time duration for check
+float32 time
+---
+# Define the result
+bool found_condition
+---
+# Define a feedback message
+float32 time_lapsed

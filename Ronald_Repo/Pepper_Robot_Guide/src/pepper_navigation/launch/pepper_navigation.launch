@@ -1,0 +1,28 @@
+<launch>
+
+  <!--- Run AMCL -->
+  <include file="$(find pepper_navigation)/launch/pepper_localization.launch">
+  </include>
+
+  <!-- Run the move_base node -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen">
+    <remap from="/scan" to="/pepper_robot/laser"/>
+
+    <param name="base_global_planner"     value="navfn/NavfnROS" />
+    <param name="base_local_planner"      value="dwa_local_planner/DWAPlannerROS" />
+    <param name="controller_frequency"    value="5.0" />
+    <param name="controller_patience"     value="15.0" />
+    <param name="planner_patience"        value="5.0" />
+    <param name="planner_frequency"       value="0.0" />
+    <param name="conservative_reset_dist" value="3.0" />
+    <param name="oscillation_timeout"     value="30.0" />
+    <param name="oscillation_distance"    value="0.5" />
+    <param name="footprint_padding"       value="0.01" />
+
+    <rosparam file="$(find pepper_navigation)/costmaps/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find pepper_navigation)/costmaps/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find pepper_navigation)/costmaps/local_costmap_params.yaml" command="load" />
+    <rosparam file="$(find pepper_navigation)/costmaps/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find pepper_navigation)/costmaps/dwa_local_planner.yaml" command="load" />
+    </node>
+</launch>

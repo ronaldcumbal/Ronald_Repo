@@ -1,0 +1,173 @@
+<!-- 
+  Pepper navigation simulation:
+  - stage_ros
+  - fake localization
+  - move_base
+  - map_server
+  - static map
+  - rviz view
+ -->
+<launch>
+
+  <param name="Guiding/partnerName"       value="Partner"/>
+  <param name="/simulation"               value="false"/>
+  <param name="/room_number"              value="0"/>
+  <param name="/partner_lost"             value="false"/>
+  <param name="/partner_side"             value="0"/>
+  <param name="/with_partner"             value="true"/>
+  <param name="/obstacle_detection/laser" value="/pepper_robot/laser"/>
+
+  <arg name="nao_ip"              default="$(optenv NAO_IP 192.168.0.186)" />
+  <arg name="nao_port"            default="$(optenv NAO_PORT 9559)" />
+  <arg name="roscore_ip"          default="192.168.0.151" />
+  <arg name="network_interface"   default="wlan0" />
+  <arg name="map_file"            default="$(find pepper_navigation)/maps/fullmap.yaml"/>
+
+  <!--- Start Pepper Bridge -->
+  <include file="$(find pepper_bringup)/launch/pepper_full.launch">
+    <arg name="nao_ip"            value="$(arg nao_ip)" />
+    <arg name="nao_port"          value="$(arg nao_port)" />
+    <arg name="roscore_ip"        value="$(arg roscore_ip)" />
+    <arg name="network_interface" value="$(arg network_interface)" />
+  </include>
+
+  <!-- set rosconsole to DEBUG-->
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find sfm_local_planner)/custom_rosconsole.conf"/>
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+    <param name="frame_id" value="/map"/>
+  </node>
+
+  <!--- Run AMCL -->
+  <node name="amcl" pkg="amcl" type="amcl">
+    <!--remap from="/scan" to="/pepper_robot/laser"/-->
+    <remap from="/scan" to="/depth_laser"/>
+ 
+    <!-- Overall filter parameters -->
+    <param name="min_particles"         value="100"/>
+    <param name="max_particles"         value="8000"/>
+    <param name="update_min_d"          value="0.2"/>
+    <param name="update_min_a"          value="0.523"/>
+    <param name="resample_interval"     value="2"/>
+    <param name="transform_tolerance"   value="0.1"/>
+    <param name="recovery_alpha_slow"   value="0.0"/>
+    <param name="recovery_alpha_fast"   value="0.0"/>
+    <param name="gui_publish_rate"      value="-1.0"/>
+
+    <!-- Laser model parameters -->
+    <param name="laser_min_range"       value="-1.0"/>
+    <param name="laser_max_range"       value="-1.0"/>
+    <param name="laser_max_beams"       value="61"/> 
+    <param name="laser_z_hit"           value="0.95"/>
+    <param name="laser_z_rand"          value="0.05"/>
+    <param name="laser_sigma_hit"       value="0.2"/>
+    <param name="laser_z_short"         value="0.01"/>
+    <param name="laser_z_max"           value="0.01"/>
+    <param name="laser_model_type"      value="likelihood_field"/>
+    <param name="laser_likelihood_max_dist" value="2.0"/>
+
+    <!-- Odometery model parameters -->    
+    <param name="odom_model_type"       value="omni-corrected" />
+    <param name="odom_alpha1"           value="0.01"/>
+    <param name="odom_alpha2"           value="0.01"/>
+    <param name="odom_alpha3"           value="0.01"/>
+    <param name="odom_alpha4"           value="0.015"/>
+    <param name="odom_alpha5"           value="0.01"/>
+    <param name="base_frame_id"         value="base_footprint" />
+    <param name="odom_frame_id"         value="odom"/> 
+    <param name="global_frame_id"       value="map"/>
+
+    <!--param name="initial_pose_x"        value="21.4"/>
+    <param name="initial_pose_y"        value="0.0"/>
+    <param name="initial_pose_a"        value="3.14"/>
+    <param name="initial_pose_a"        value="0.0"/-->
+
+    <param name="initial_pose_x"        value="-8.5"/>
+    <param name="initial_pose_y"        value="0.0"/>
+    <param name="initial_pose_a"        value="-2.3"/>
+
+    <!--param name="initial_pose_x"        value="-11.67"/>
+    <param name="initial_pose_y"        value="0.75"/>
+    <param name="initial_pose_a"        value="-1.5"/-->
+  </node>
+
+  <!-- Run move_base node -->
+  <node pkg="move_base" type="move_base" respawn="false" name="move_base" output="screen" >
+    <remap from="map" to="/map" />
+    <remap from="/scan" to="/pepper_robot/laser"/>
+    <param name="base_local_planner"    value="sfm_local_planner/SFMPlanner"/>
+    <!-- SFM Local Planner parameters -->
+    <param name="SFMPlanner/subgoal_tol"           value="0.65"/>
+    <param name="SFMPlanner/goal_tol"              value="0.1"/>
+    <param name="SFMPlanner/max_vel_lin"           value="1.0"/>
+    <param name="SFMPlanner/max_vel_th"            value="0.5"/>
+    <param name="SFMPlanner/goal_coef"             value="1.0"/>
+    <param name="SFMPlanner/part_coef"             value="0.0"/>
+    <param name="SFMPlanner/peds_coef"             value="1.0"/>
+    <param name="SFMPlanner/obst_coef"             value="0.0"/>
+    <param name="SFMPlanner/desi_vel"              value="2.3"/>
+    <param name="SFMPlanner/relax_time"            value="3.0"/>
+    <param name="SFMPlanner/dSoc"                  value="0.5"/>
+    <!-- Frame Name -->
+    <param name="SFMPlanner/global_frame"          value="map"/>
+    <param name="SFMPlanner/robot_odom_topic"      value="/pepper_robot/odom"/>
+    <param name="SFMPlanner/partner_pose_topic"    value="/partner_pose"/>
+    <param name="SFMPlanner/pedest_pose_topic"     value="/people_detected"/>
+    <param name="SFMPlanner/obstacle_pose_topic"   value="/obstacle_pose"/>
+    <param name="SFMPlanner/robot_base_frame"      value="base_link"/>
+
+    <rosparam file="$(find pepper_navigation)/costmaps/real_sfm/costmap_common_params.yaml" command="load" ns="global_costmap" />
+    <rosparam file="$(find pepper_navigation)/costmaps/real_sfm/global_costmap_params.yaml" command="load" />
+    <rosparam file="$(find pepper_navigation)/costmaps/real_sfm/costmap_common_params.yaml" command="load" ns="local_costmap" />
+    <rosparam file="$(find pepper_navigation)/costmaps/real_sfm/local_costmap_params.yaml" command="load" />
+  </node>
+
+  <!-- Conver Depth Camera to Laser -->
+  <node name="depthimage_to_laserscan" pkg="depthimage_to_laserscan" type="depthimage_to_laserscan" >
+    <remap from="image" to="/pepper_robot/camera/depth/image_raw" />
+    <remap from="camera_info" to="/pepper_robot/camera/depth/camera_info" />
+    <remap from="scan" to="/depth_laser" />
+
+    <param name="scan_height" value="1"/>
+    <param name="scan_time" value="1/30" /> <!--Limited by camere fps -->
+    <param name="range_min" value="0.2" />
+    <param name="range_max" value="10.0" />
+    <param name="output_frame_id" value="/base_footprint" />
+</node>
+
+  <!-- Naoqi Control of Events Node -->
+  <node name="event_control" type="event_control.py" pkg="pepper_people_detector"/>
+
+  <!-- Naoqi Control of Gestures Node -->
+  <node name="gesture_control" type="gesture_control.py" pkg="pepper_people_detector" />
+
+  <!-- Naoqi Control of Speech Recognition -->
+  <node name="speech_detection" type="speech_detection.py" pkg="pepper_people_detector"/> 
+
+  <!-- Partner Check Server Node -->
+  <node name="partner_check" type="partner_check_action" pkg="pepper_navigation" output="screen" /> 
+
+  <!-- Obstacle detection Node >
+  <node name="obstacle_detection" type="obstacle_detection" pkg="pepper_navigation"/--> 
+
+  <!-- Partner Lost Server Node -->
+  <node name="partner_lost" type="partner_lost_action" pkg="pepper_navigation"/>
+
+  <!-- Navigation Goal node -->
+  <node name="send_goal" type="send_goal_action" pkg="pepper_navigation"/> 
+
+  <!-- Manager Node -->
+  <node name="home_action" type="home_action" pkg="pepper_navigation"  output="screen"/> 
+
+  <!-- Visualisation -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find pepper_description)/config/urdf.rviz"/>
+
+ <!-- Repeater Node for Rosbag -->
+  <node name="rosbag_record" type="rosbag_record" pkg="pepper_navigation"/>
+
+  <!-- Rosbag records specific topics -->
+  <node pkg="rosbag" type="record" name="rosbag_record_trials"
+        args="-o /home/ronald/pepper-navigation/catkin_pepper/src/Experiment/trial /bag_robotPose /bag_robotVel /bag_partnerLocalPose /bag_partnerGlobalPose /bag_partnerFound /bag_partnerLost"/>   
+
+</launch>

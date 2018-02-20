@@ -1,0 +1,6 @@
+std_msgs/Header header
+int32 ids
+string shirtcolor
+float64 angle
+geometry_msgs/Pose pose
+

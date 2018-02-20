@@ -1,0 +1,32 @@
+<!--  -->
+<launch>
+
+  <param name="Guiding/partnerName"       value="Partner"/>
+  <param name="/simulation"               value="false"/>
+  <param name="/room_number"              value="0"/>
+  <param name="/partner_lost"             value="false"/>
+  <param name="/partner_side"             value="0"/>
+  <param name="/with_partner"             value="true"/>
+  <param name="/obstacle_detection/laser" value="/pepper_robot/laser"/>
+
+  <arg name="nao_ip"              default="$(optenv NAO_IP 192.168.0.186)" />
+  <arg name="nao_port"            default="$(optenv NAO_PORT 9559)" />
+  <arg name="roscore_ip"          default="192.168.0.153" />
+  <arg name="network_interface"   default="wlan0" />
+  <arg name="map_file"            default="$(find pepper_navigation)/maps/fullmap.yaml"/>
+
+  <!-- Run the map server -->
+  <node name="map_server" pkg="map_server" type="map_server" args="$(arg map_file)">
+    <param name="frame_id" value="/map"/>
+  </node>
+
+  <!-- Visualisation -->
+<!--
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find pepper_description)/config/urdf.rviz"/>
+-->
+
+  <!-- Rosbag records specific topics -->
+  <node pkg="rosbag" type="play" name="player" output="screen" 
+        args="--clock /home/ronald/pepper-navigation/catkin_pepper/src/Experiment/trial_2017-09-27-16-26-05.bag"/>   
+
+</launch>

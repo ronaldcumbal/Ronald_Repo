@@ -1,0 +1,57 @@
+<!-- 
+  Pepper navigation simulation:
+  - stage_ros
+  - fake localization
+  - move_base
+  - map_server
+  - static map
+  - rviz view
+ -->
+<launch>
+
+  <arg name="nao_ip"              default="$(optenv NAO_IP 192.168.0.101)" />
+  <arg name="nao_port"            default="$(optenv NAO_PORT 9559)" />
+  <arg name="roscore_ip"          default="192.168.0.103" />
+  <arg name="network_interface"   default="wlan0" />
+  <arg name="map_file"            default="$(find pepper_navigation)/maps/fullmap.yaml"/>
+
+  <!--- Start Pepper Bridge -->
+  <include file="$(find pepper_bringup)/launch/pepper_full.launch">
+    <arg name="nao_ip"            value="$(arg nao_ip)" />
+    <arg name="nao_port"          value="$(arg nao_port)" />
+    <arg name="roscore_ip"        value="$(arg roscore_ip)" />
+    <arg name="network_interface" value="$(arg network_interface)" />
+  </include>
+
+  <!--- Start Gmappign node -->
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen" launch-prefix="xterm -e">
+        <remap from="/scan" to="/pepper_robot/laser"/>
+	<param name="base_frame"            value="base_footprint" />
+	<param name="map_frame"             value="map"/> 
+	<param name="odom_frame"            value="odom"/> 
+        <param name="map_update_interval"   value="0.1"/>
+        <param name="minimumScore"          value="100"/>
+        <param name="linearUpdate"          value="0.1"/>
+        <param name="angularUpdate"         value="0.1"/>
+        <param name="temporalUpdate"        value="-1.0"/>
+        <param name="resampleThreshold"     value="0.5"/>
+        <param name="particles"             value="1000"/>
+        <param name="xmin"                  value="-5.0"/>
+        <param name="ymin"                  value="-5.0"/>
+        <param name="xmax"                  value="5.0"/>
+        <param name="ymax"                  value="5.0"/>
+        <param name="delta"                 value="0.02"/>
+        <param name="maxRange"              value="1.4"/>
+        <param name="maxUrange"             value="1.5"/>
+    </node>
+
+<!-- joy node -->
+  <node name="joy_node" pkg="joy" type="joy_node" respawn="true" />
+
+  <!-- Joy stick controller X-BOX -->
+  <node name="pepper_joy" pkg="pepper_joystick" type="pepper_joy.py" respawn="true" launch-prefix="xterm -e"/> 
+
+  <!-- Visualisation -->
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find pepper_navigation)/stage/rviz/pepper_mapping.rviz"/>
+
+</launch>

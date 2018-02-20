@@ -1,0 +1,7 @@
+<library path="lib/libsfm_local_planner">
+  <class name="sfm_local_planner/SFMPlanner" type="sfm_planner::SFMPlanner" base_class_type="nav_core::BaseLocalPlanner">
+    <description>
+      A implementation of a local planner using either a Social Force Model.
+    </description>
+  </class>
+</library>

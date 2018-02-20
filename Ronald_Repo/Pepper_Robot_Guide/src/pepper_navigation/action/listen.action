@@ -1,0 +1,8 @@
+# Define the goal:
+float32 type
+---
+# Define the result
+string word
+---
+# Define a feedback message
+float32 time
